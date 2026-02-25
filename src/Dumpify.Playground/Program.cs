@@ -3,64 +3,205 @@ using System.Collections;
 using System.Data;
 using System.Text;
 
-//DumpConfig.Default.Renderer = Renderers.Text;
-//DumpConfig.Default.ColorConfig = ColorConfig.NoColors;
+// =============================================================================
+// Horizontal Layout Demo - Showcasing rendering flexibility
+// =============================================================================
 
-//DumpConfig.Default.Output = Outputs.Debug;
+Console.WriteLine("=== Horizontal Layout Demo ===\n");
 
-// DumpConfig.Default.TableConfig.ShowRowSeparators = true;
-// DumpConfig.Default.TableConfig.ShowMemberTypes = true;
-// new DirectoryInfo("C:\\Program Files").Dump();
-// (1, 2, 3, 4, ("1", "b"), 5, 6, 7, 8, 9, 10, 11, 12, 13, "14", "15", 16, 17, 18).Dump("ValueTuple", tableConfig: new TableConfig {  MaxCollectionCount = 4 });
-// (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, "14", "15", 16, 17, 18).Dump("ValueTuple 1");
-// (1, 2, 3, 4, ("1", "b"), 5, 6, 7, 8, 9, 10, 11, 12, 13, "14", "15", 16, 17, 18).Dump("ValueTuple");
-// Tuple.Create(1, 2, 3, 4, 5, 6, 7, Tuple.Create(8, 9, 10, 11)).Dump("System.Tuple");
-// new[] { 1, 2, 3,  4, 5, 6, 7, 8, 9, 10 }.Dump(tableConfig: new TableConfig { MaxCollectionCount = 3 });
-// DumpConfig.Default.TableConfig.BorderStyle = TableBorderStyle.Ascii;
+// 1. Simple object - properties as columns
+Console.WriteLine("1. Single Object");
+var product = new { Name = "Laptop", Price = 999.99m, InStock = true };
+product.Dump("Vertical (default)");
+product.Dump("Horizontal", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
 
-new { Name = "Moaid", FamilyName = "Hathot", Age = 35, Birthday = new DateOnly(1988, 09, 30), Birthday2 = DateTime.Parse("1988.09.30") }.Dump("Simple object");
-new { Name = "Moaid", FamilyName = "Hathot", Age = 35, Birthday = new DateOnly(1988, 09, 30), Birthday2 = DateTime.Parse("1988.09.30") }.Dump("Simple object", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal});
-Console.WriteLine("---------------------");
-Console.WriteLine("=== Testing Truncation ===");
-
-// Test array with truncation
-var numbers = new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-numbers.Dump("Array with truncation", truncationConfig: new TruncationConfig { MaxCollectionCount = 5 });
-
-Console.WriteLine("---------------------");
-Console.WriteLine("=== Testing Horizontal Layout ===");
-
-// Test simple object with horizontal layout
-var testPerson = new Person
+// 2. Collection of objects - each item as a row, properties as columns
+Console.WriteLine("\n2. Collection of Objects");
+var products = new[]
 {
-    FirstName = "Moaid",
-    LastName = "Hathot",
-    Profession = Profession.Software
+    new { Name = "Laptop", Price = 999.99m, InStock = true },
+    new { Name = "Mouse", Price = 29.99m, InStock = true },
+    new { Name = "Keyboard", Price = 79.99m, InStock = false },
 };
+products.Dump("Horizontal Products", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
 
-Console.WriteLine("\n--- Single object with VERTICAL (default) layout ---");
-testPerson.Dump("Vertical Layout");
+// 3. Nested objects - nested tables preserve their own structure
+Console.WriteLine("\n3. Nested Objects");
+var order = new
+{
+    OrderId = 1001,
+    Customer = "Alice",
+    Items = new[]
+    {
+        new { Product = "Laptop", Qty = 1 },
+        new { Product = "Mouse", Qty = 2 },
+    }
+};
+order.Dump("Order with nested items", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
 
-Console.WriteLine("\n--- Single object with HORIZONTAL layout ---");
-testPerson.Dump("Horizontal Layout", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+// 4. Mixed types in collection - graceful handling
+Console.WriteLine("\n4. Row Separators");
+var employees = new[]
+{
+    new Employee { Name = "Alice", Department = "Engineering", Salary = 95000 },
+    new Employee { Name = "Bob", Department = "Marketing", Salary = 75000 },
+    new Employee { Name = "Carol", Department = "Engineering", Salary = 105000 },
+};
+employees.Dump("Employees", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal, ShowRowSeparators = true });
 
-// Test collection with horizontal layout
+// 5. With row indices shown
+Console.WriteLine("\n5. Collection with Row Indices");
+var tasks = new[]
+{
+    new { Task = "Review PR", Status = "Done", Priority = "High" },
+    new { Task = "Write tests", Status = "In Progress", Priority = "Medium" },
+    new { Task = "Update docs", Status = "Pending", Priority = "Low" },
+};
+tasks.Dump("Tasks (with indices)", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal, ShowRowIndices = true });
+
+// 6. Primitive collection - falls back to vertical (appropriate for simple types)
+Console.WriteLine("\n6. Primitive Collection (auto vertical fallback)");
+var numbers = new[] { 1, 2, 3, 4, 5 };
+numbers.Dump("Numbers - Horizontal requested", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+
+// 7. Side-by-side comparison
+Console.WriteLine("\n7. Side-by-Side: Vertical vs Horizontal");
 var people = new[]
 {
     new Person { FirstName = "Moaid", LastName = "Hathot", Profession = Profession.Software },
-    new Person { FirstName = "Haneeni", LastName = "Shibli", Profession = Profession.Health }
+    new Person { FirstName = "Haneeni", LastName = "Shibli", Profession = Profession.Health },
+};
+people.Dump("Vertical Layout");
+people.Dump("Horizontal Layout", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+
+// 8. Dynamic/Hybrid Layout using SetLayoutWhen with depth-based rules
+Console.WriteLine("\n8. Hybrid Layout (Horizontal at depth 0, Vertical for nested)");
+var hybridConfig = new TableConfig();
+hybridConfig.SetLayoutWhen(
+    ctx => ctx.CurrentDepth == 0,  // Only at the top level
+    TableLayout.Horizontal
+);
+
+var ordersWithDetails = new[]
+{
+    new
+    {
+        OrderId = 1001,
+        Customer = "Alice",
+        Items = new[]
+        {
+            new { Product = "Laptop", Qty = 1, Price = 999.99m },
+            new { Product = "Mouse", Qty = 2, Price = 29.99m },
+        }
+    },
+    new
+    {
+        OrderId = 1002,
+        Customer = "Bob",
+        Items = new[]
+        {
+            new { Product = "Keyboard", Qty = 1, Price = 79.99m },
+        }
+    },
 };
 
-Console.WriteLine("\n--- Collection with VERTICAL (default) layout ---");
-people.Dump("Vertical Collection");
+Console.WriteLine("With hybrid config: top-level horizontal, nested stays vertical");
+ordersWithDetails.Dump("Orders (Hybrid)", tableConfig: hybridConfig);
 
-Console.WriteLine("\n--- Collection with HORIZONTAL layout ---");
-people.Dump("Horizontal Collection", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
-people.ToList().Dump("Horizontal Collection List", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
-people.ToList().Dump("Horizontal Collection List with rowIndices", tableConfig: new TableConfig { TableLayout = TableLayout.Vertical, ShowRowIndices = true });
+// 9. Type-specific layout rules
+Console.WriteLine("\n9. Type-Specific Layout Rules");
+var typeSpecificConfig = new TableConfig();
+typeSpecificConfig.SetLayoutForType<Employee>(TableLayout.Horizontal);
+// Person stays vertical (default)
 
-Console.WriteLine("\n=== End Horizontal Layout Test ===");
-Console.WriteLine("---------------------");
+var team = new
+{
+    Manager = new Person { FirstName = "Alice", LastName = "Smith", Profession = Profession.Software },
+    Members = new[]
+    {
+        new Employee { Name = "Bob", Department = "Engineering", Salary = 85000 },
+        new Employee { Name = "Carol", Department = "Engineering", Salary = 90000 },
+    }
+};
+team.Dump("Team (Employee=Horizontal, Person=Vertical)", tableConfig: typeSpecificConfig);
+
+// 10. Complex rule with TableLayoutResult overrides
+Console.WriteLine("\n10. Dynamic Config with Result Overrides");
+var advancedConfig = new TableConfig();
+advancedConfig.SetLayoutWhen(ctx =>
+    ctx.CurrentDepth == 0
+        ? new TableLayoutResult { Layout = TableLayout.Horizontal, ShowRowSeparators = true }
+        : TableLayoutResult.None  // Let other rules or default handle it
+);
+
+employees.Dump("Employees (Horizontal + Row Separators)", tableConfig: advancedConfig);
+
+Console.WriteLine("\n=== End Demo ===");
+
+// =============================================================================
+// Old playground code (preserved but not called)
+// =============================================================================
+#pragma warning disable CS8321 // Local function is declared but never used
+void OldPlaygroundCode()
+{
+    //DumpConfig.Default.Renderer = Renderers.Text;
+    //DumpConfig.Default.ColorConfig = ColorConfig.NoColors;
+
+    //DumpConfig.Default.Output = Outputs.Debug;
+
+    // DumpConfig.Default.TableConfig.ShowRowSeparators = true;
+    // DumpConfig.Default.TableConfig.ShowMemberTypes = true;
+    // new DirectoryInfo("C:\\Program Files").Dump();
+    // (1, 2, 3, 4, ("1", "b"), 5, 6, 7, 8, 9, 10, 11, 12, 13, "14", "15", 16, 17, 18).Dump("ValueTuple", tableConfig: new TableConfig {  MaxCollectionCount = 4 });
+    // (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, "14", "15", 16, 17, 18).Dump("ValueTuple 1");
+    // (1, 2, 3, 4, ("1", "b"), 5, 6, 7, 8, 9, 10, 11, 12, 13, "14", "15", 16, 17, 18).Dump("ValueTuple");
+    // Tuple.Create(1, 2, 3, 4, 5, 6, 7, Tuple.Create(8, 9, 10, 11)).Dump("System.Tuple");
+    // new[] { 1, 2, 3,  4, 5, 6, 7, 8, 9, 10 }.Dump(tableConfig: new TableConfig { MaxCollectionCount = 3 });
+    // DumpConfig.Default.TableConfig.BorderStyle = TableBorderStyle.Ascii;
+
+    new { Name = "Moaid", FamilyName = "Hathot", Age = 35, Birthday = new DateOnly(1988, 09, 30), Birthday2 = DateTime.Parse("1988.09.30") }.Dump("Simple object");
+    new { Name = "Moaid", FamilyName = "Hathot", Age = 35, Birthday = new DateOnly(1988, 09, 30), Birthday2 = DateTime.Parse("1988.09.30") }.Dump("Simple object", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+    Console.WriteLine("---------------------");
+    Console.WriteLine("=== Testing Truncation ===");
+
+    // Test array with truncation
+    var numbers = new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+    numbers.Dump("Array with truncation", truncationConfig: new TruncationConfig { MaxCollectionCount = 5 });
+
+    Console.WriteLine("---------------------");
+    Console.WriteLine("=== Testing Horizontal Layout ===");
+
+    // Test simple object with horizontal layout
+    var testPerson = new Person
+    {
+        FirstName = "Moaid",
+        LastName = "Hathot",
+        Profession = Profession.Software
+    };
+
+    Console.WriteLine("\n--- Single object with VERTICAL (default) layout ---");
+    testPerson.Dump("Vertical Layout");
+
+    Console.WriteLine("\n--- Single object with HORIZONTAL layout ---");
+    testPerson.Dump("Horizontal Layout", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+
+    // Test collection with horizontal layout
+    var people = new[]
+    {
+        new Person { FirstName = "Moaid", LastName = "Hathot", Profession = Profession.Software },
+        new Person { FirstName = "Haneeni", LastName = "Shibli", Profession = Profession.Health }
+    };
+
+    Console.WriteLine("\n--- Collection with VERTICAL (default) layout ---");
+    people.Dump("Vertical Collection");
+
+    Console.WriteLine("\n--- Collection with HORIZONTAL layout ---");
+    people.Dump("Horizontal Collection", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+    people.ToList().Dump("Horizontal Collection List", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+    people.ToList().Dump("Horizontal Collection List with rowIndices", tableConfig: new TableConfig { TableLayout = TableLayout.Vertical, ShowRowIndices = true });
+
+    Console.WriteLine("\n=== End Horizontal Layout Test ===");
+    Console.WriteLine("---------------------");
 
     var moaid1 = new Person
     {
@@ -82,34 +223,34 @@ Console.WriteLine("---------------------");
         Profession = Profession.Software
     };
 
-new []{ moaid1, haneeni1, lily1 }.Dump("Family Members", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal});
-new []{ moaid1, haneeni1, lily1 }.Dump("Family Members", tableConfig: new TableConfig { TableLayout = TableLayout.Vertical});
+    new[] { moaid1, haneeni1, lily1 }.Dump("Family Members", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+    new[] { moaid1, haneeni1, lily1 }.Dump("Family Members", tableConfig: new TableConfig { TableLayout = TableLayout.Vertical });
 
 
-// moaid1.Spouse = haneeni1;
-// haneeni1.Spouse = moaid1;
+    // moaid1.Spouse = haneeni1;
+    // haneeni1.Spouse = moaid1;
 
-moaid1.Dump("Moaid with Spouse");
-moaid1.Dump("Horizontal Layout", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+    moaid1.Dump("Moaid with Spouse");
+    moaid1.Dump("Horizontal Layout", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
 
-new Dictionary<string, Person>
-{
-    ["Moaid"] = moaid1,
-    ["Haneeni"] = haneeni1
-}.Dump("Dictionary of People");
+    new Dictionary<string, Person>
+    {
+        ["Moaid"] = moaid1,
+        ["Haneeni"] = haneeni1
+    }.Dump("Dictionary of People");
 
 
-new Dictionary<string, Person>
-{
-    ["Moaid"] = moaid1,
-    ["Haneeni"] = haneeni1
-}.Dump("Dictionary of People", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+    new Dictionary<string, Person>
+    {
+        ["Moaid"] = moaid1,
+        ["Haneeni"] = haneeni1
+    }.Dump("Dictionary of People", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
 
-new []{ moaid1, haneeni1 }.Dump("Array of People");
-new []{ moaid1, haneeni1 }.Dump("Array of People", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+    new[] { moaid1, haneeni1 }.Dump("Array of People");
+    new[] { moaid1, haneeni1 }.Dump("Array of People", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
 
-// moaid1.Dump("Moaid");
-// new [] { moaid1, haneieni1 }.Dump();
+    // moaid1.Dump("Moaid");
+    // new [] { moaid1, haneieni1 }.Dump();
     // moaid1.Dump("Use global");
     // moaid1.Dump("Override per dump", tableConfig: new TableConfig { BorderStyle = TableBorderStyle.Minimal, ShowRowSeparators = true });
     // moaid1.Dump("Use globali 2", maxDepth: 1);
@@ -118,54 +259,86 @@ new []{ moaid1, haneeni1 }.Dump("Array of People", tableConfig: new TableConfig 
     // Enumerable.Range(0, 10).ToDictionary(i => i).Dump("Enumerable Range", truncationConfig: new TruncationConfig { MaxCollectionCount = 3, Mode = TruncationMode.HeadAndTail });
     // Enumerable.Range(0, 10).ToDictionary(i => i).Dump("Enumerable Range", truncationConfig: new TruncationConfig { MaxCollectionCount = 3, Mode = TruncationMode.HeadAndTail, PerDimension = true });
 
-//
-// var lazy = new Lazy<int>(()=> 10);
-// lazy.Dump();
-// lazy.Dump("With value");
-// _ = lazy.Value;
-// lazy.Dump();
-//
-// var lazy2 = new Lazy<string>(() => null!);
-// lazy2.Dump();
-// _ = lazy2.Value;
-// lazy2.Dump();
-// ((object)null!).Dump();
-//
+    //
+    // var lazy = new Lazy<int>(()=> 10);
+    // lazy.Dump();
+    // lazy.Dump("With value");
+    // _ = lazy.Value;
+    // lazy.Dump();
+    //
+    // var lazy2 = new Lazy<string>(() => null!);
+    // lazy2.Dump();
+    // _ = lazy2.Value;
+    // lazy2.Dump();
+    // ((object)null!).Dump();
+    //
 
-// var task = Task.Delay(TimeSpan.FromSeconds(10)).ContinueWith(_ => 10);
-var task = Task.Delay(TimeSpan.FromSeconds(10)).ContinueWith(_ => 10);
+    // var task = Task.Delay(TimeSpan.FromSeconds(10)).ContinueWith(_ => 10);
+    var task = Task.Delay(TimeSpan.FromSeconds(10)).ContinueWith(_ => 10);
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-// task.Dump();
+    // task.Dump();
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
 
-// moaid1.Dump();
-// TestSpecific();
-// TestSingle();
-// ShowEverything();
+    // moaid1.Dump();
+    // TestSpecific();
+    // TestSingle();
+    // ShowEverything();
 
-//todo: improve labels, make them work with simple objects as strings (not wrapped in other object) and consider changing colors
+    //todo: improve labels, make them work with simple objects as strings (not wrapped in other object) and consider changing colors
 
 #pragma warning disable CS8321
 #pragma warning disable CS0168
 
-DumpConfig.Default.AddCustomTypeHandler(typeof(byte[]), (obj, t, valueProvider, memberProvider) => {
+    DumpConfig.Default.AddCustomTypeHandler(typeof(byte[]), (obj, t, valueProvider, memberProvider) =>
+    {
         "sdfdsf".Dump();
-    return ((Byte[])obj).Take(3).ToArray();
-});
+        return ((Byte[])obj).Take(3).ToArray();
+    });
 
-//var foo = new { Name = "Moaid", LastName = "Hathot", Age = 35, Content = Enumerable.Range(0, 10).Select(i => (char)(i + 'a')).ToArray() };
-//foo.Dump("Test");
+    //var foo = new { Name = "Moaid", LastName = "Hathot", Age = 35, Content = Enumerable.Range(0, 10).Select(i => (char)(i + 'a')).ToArray() };
+    //foo.Dump("Test");
+
+    // var moaid = new Person
+    // {
+    //     FirstName = "Moaid",
+    //     LastName = "Hathot",
+    //     Profession = Profession.Software
+    // };
+    // var haneeni = new Person
+    // {
+    //     FirstName = "Haneeni",
+    //     LastName = "Shibli",
+    //     Profession = Profession.Health
+    // };
+    // moaid.Spouse = haneeni;
+    // haneeni.Spouse = moaid;
+
+    // moaid.Dump("sdf");
+    // DumpConfig.Default.TableConfig.ShowTableHeaders = false;
+    // moaid.Dump("1112");
+    // moaid.Dump(tableConfig: new TableConfig { ShowTableHeaders = true, ShowRowSeparators = true, ShowMemberTypes = true }, typeNames: new TypeNamingConfig { ShowTypeNames = false });
+    //moaid.Dump();
+    //     var family = new Family
+    //     {
+    //         Parent1 = moaid,
+    //         Parent2 = haneeni,
+    //         FamilyId = 42,
+    //         ChildrenArray = new[] { new Person { FirstName = "Child1", LastName = "Hathot" }, new Person { FirstName = "Child2", LastName = "Hathot", Spouse = new Person { FirstName = "Child22", LastName = "Hathot", Spouse = new Person { FirstName = "Child222", LastName = "Hathot", Spouse = new Person { FirstName = "Child2222", LastName = "Hathot", Spouse = new Person
+    //         {
+    //             FirstName = "Child22222", LastName = "Hathot#@!%"
+    //         }}} } } },
+    //         ChildrenList = new List<Person> { new Person { FirstName = "Child1", LastName = "Hathot" }, new Person { FirstName = "Child2", LastName = "Hathot" } },
+    //         ChildrenArrayList = new ArrayList { new Person { FirstName = "Child1", LastName = "Hathot" }, new Person { FirstName = "Child2", LastName = "Hathot" } },
+    //         FamilyType = typeof(Family),
+    //         FamilyNameBuilder = new StringBuilder("This is the built Family Name"),
+    //     }.Dump().DumpDebug().DumpTrace().DumpText();
+    //     //File.WriteAllText(@"S:\Programming\Github\Dumpify\textDump.txt", family);
+    // }
+}
 
 void TestSpecific()
 {
-    {
-        {
-            {
-
-            }
-        }
-    }
     var moaid = new Person
     {
         FirstName = "Moaid",
@@ -190,7 +363,7 @@ void TestSpecific()
     Person[] arr = [moaid, moaid2, haneen];
     arr.Dump();
 
-    if(moaid.FirstName.Equals("Moaid"))
+    if (moaid.FirstName.Equals("Moaid"))
     {
         return;
     }
@@ -203,160 +376,7 @@ void TestSpecific()
 
     moaid2.Dump("Filter property Name", members: new MembersConfig { MemberFilter = ctx => ctx.Member.Name != nameof(Person.FirstName) });
     moaid2.Dump("Filter property Value", members: new MembersConfig { MemberFilter = ctx => !object.ReferenceEquals(ctx.Value, "Moaid") });
-    //value.Dump();
-    // ((nuint)5).Dump();
-    // ((nint)5).Dump();
-    //'a'.Dump(typeNames: new TypeNamingConfig { });
-    // Enumerable.Range(0, 10).Select(i => (char)(i + 'a')).Dump();
-    // Enumerable.Range(0, 10).Select(i => (char)(i + 'a')).ToArray().Dump();
-    // "this is a string".Dump();
-    //new TestVirtual().Dump();
-    // DumpConfig.Default.TypeRenderingConfig.StringQuotationChar = '`';
-    //
-    // var direct = new TestDirect();
-    // var explici = new TestExplicit();
-    //
-    // direct.Add(new KeyValuePair<string, int>("1", 1));
-    // direct.Add(new KeyValuePair<string, int>("2", 2));
-    // direct.Add(new KeyValuePair<string, int>("3", 3));
-    // direct.Add(new KeyValuePair<string, int>("4", 4));
-    //
-    //
-    // explici.Add(new KeyValuePair<string, int>("1", 1));
-    // explici.Add(new KeyValuePair<string, int>("2", 2));
-    // explici.Add(new KeyValuePair<string, int>("3", 3));
-    // explici.Add(new KeyValuePair<string, int>("4", 4));
-    //
-
-    // Regex.Matches("abc", "[a-z]").Dump();
-    //direct.Dump("Direct");
-    // explici.Dump("Explicit");
-
-
-    //DumpConfig.Default.TypeRenderingConfig.StringQuotationChar = '\'';
-    //"Hello".Dump();
-    //"Hello".Dump("Default");
-    //1.Dump();
-    //new { Name = "Moaid", LastName = "Hathot", Age = 35 }.Dump("Default");
-    //DumpConfig.Default.TypeRenderingConfig.QuoteStringValues = false;
-    //"Hello".Dump("Global");
-    //"Hello".Dump();
-    //1.Dump();
-    //new { Name = "Moaid", LastName = "Hathot", Age = 35  }.Dump("Global");
-    //DumpConfig.Default.TypeRenderingConfig.QuoteStringValues = true;
-    //"Hello".Dump("per dump", typeRenderingConfig: new TypeRenderingConfig { QuoteStringValues = false});
-    //"Hello".Dump(typeRenderingConfig: new TypeRenderingConfig { QuoteStringValues = false});
-    //1.Dump(typeRenderingConfig: new TypeRenderingConfig { QuoteStringValues = false});
-    //new { Name = "Moaid", LastName = "Hathot", Age = 35  }.Dump("per dump", typeRenderingConfig: new TypeRenderingConfig { QuoteStringValues = false });
-    //new Dictionary<string, int>() { ["1"] = 2, ["2"] = 2, ["3"] = 3 }.Dump();
-    //Regex.Match("abc", "[a-z]").Dump();
-    //try
-    //{
-    //    throw new Exception("Bla bla", new ArgumentNullException("paramName", "inner bla fla"));
-    //}
-    //catch (Exception e)
-    //{
-    //    e.Dump(maxDepth: 1, label: "Test Ex", colors: new ColorConfig { LabelValueColor = Color.DarkOrange });
-    //}
-    //
-
-    // new { Description = "You can manually specify labels to objects" }.Dump("Manual label");
-
-    //Set auto-label globally for all dumps if a custom label wasn't provided
-    // DumpConfig.Default.UseAutoLabels = true;
-    // new { Description = "Or set labels automatically with auto-labels" }.Dump();
-
-    // new { fa = "Hello", bla = "Word!" }.Dump("without separators");
-    // new { fa = "Hello", bla = "Word!" }.Dump("with separators", tableConfig: new TableConfig { ShowRowSeparators = true });
-    // DumpConfig.Default.UseAutoLabels = true;
-    // DumpConfig.Default.TableConfig.ShowMemberTypes = true;
-    // DumpConfig.Default.TableConfig.ShowRowSeparators = true;
-    // var str2 = new { fa = "Hello", bla = "World!" }.Dump();
-
-
-    // new { Name = "Dumpify", Description = "Dump any object to Console" }.Dump(tableConfig: new TableConfig { ShowRowSeparators = true, ShowMemberTypes = true });
-
-
-
-    // Enumerable.Range(1, 3).Dump("This is Enumerable", colors: new ColorConfig { LabelValueColor = Color.Orange });
-    //Enumerable.Range(1, 3).ToArray().Dump("This is Array", colors: new ColorConfig { LabelValueColor = Color.Orange });
-    //Enumerable.Range(1, 3).ToList().Dump("This is List", colors: new ColorConfig { LabelValueColor = Color.Orange });
-    //1.Dump("This is one", colors: new ColorConfig { LabelValueColor = Color.Fuchsia });
-    //"Moaid".Dump();
-    //Guid.NewGuid().Dump("This is Guid", colors: new ColorConfig { LabelValueColor = Color.SlateBlue });
-    //Guid.NewGuid().Dump();
-    //new
-    //{
-    //    Property = typeof(Person).GetProperty("FirstName"),
-    //    Ctor = typeof(Person).GetConstructors().First(),
-    //    Type = typeof(Person),
-    //    Field = typeof(Person).GetFields().First(),
-    //    Method = typeof(Person).GetMethods().First(m => m.Name.Contains("FooMethod")),
-    //    Ctor2 = typeof(Person2).GetConstructors().First(),
-    //}.Dump("This is a test");
-
-    //typeof(Person).Dump();
-    // new
-    // {
-    //     Properties = typeof(Person).GetProperties(),
-    //     Methods = typeof(Person).GetMethods(),
-    //     Fields = typeof(Person).GetFields(),
-    //     Ctors = typeof(Person).GetConstructors(),
-    //     //Members = typeof(Person).GetMembers(),
-    //     FooGuid = Guid.NewGuid(),
-    //     Enum = Profession.Health,
-    //     TimeSpan = TimeSpan.MinValue,
-    //     DateTime = DateTime.Now,
-    //     DateTimeOffset = DateTimeOffset.Now,
-    //     DateOnly = DateOnly.FromDateTime(DateTime.Now),
-    //     TimeOnly = TimeOnly.FromDateTime(DateTime.Now),
-    //     Lambda1 = (object)(() => 10),
-    //
-    // }.Dump("Person");
-    //
-    // DateTime.Now.Dump("DT");
-    // Guid.NewGuid().Dump("Guid");
-    // Guid.NewGuid().Dump();
 }
-
-// void TestObjectWithLargeWidth()
-// {
-var moaid = new Person
-{
-    FirstName = "Moaid",
-    LastName = "Hathot",
-    Profession = Profession.Software
-};
-var haneeni = new Person
-{
-    FirstName = "Haneeni",
-    LastName = "Shibli",
-    Profession = Profession.Health
-};
-moaid.Spouse = haneeni;
-haneeni.Spouse = moaid;
-
-// moaid.Dump("sdf");
-// DumpConfig.Default.TableConfig.ShowTableHeaders = false;
-// moaid.Dump("1112");
-// moaid.Dump(tableConfig: new TableConfig { ShowTableHeaders = true, ShowRowSeparators = true, ShowMemberTypes = true }, typeNames: new TypeNamingConfig { ShowTypeNames = false });
-//moaid.Dump();
-//     var family = new Family
-//     {
-//         Parent1 = moaid,
-//         Parent2 = haneeni,
-//         FamilyId = 42,
-//         ChildrenArray = new[] { new Person { FirstName = "Child1", LastName = "Hathot" }, new Person { FirstName = "Child2", LastName = "Hathot", Spouse = new Person { FirstName = "Child22", LastName = "Hathot", Spouse = new Person { FirstName = "Child222", LastName = "Hathot", Spouse = new Person { FirstName = "Child2222", LastName = "Hathot", Spouse = new Person
-//         {
-//             FirstName = "Child22222", LastName = "Hathot#@!%"
-//         }}} } } },
-//         ChildrenList = new List<Person> { new Person { FirstName = "Child1", LastName = "Hathot" }, new Person { FirstName = "Child2", LastName = "Hathot" } },
-//         ChildrenArrayList = new ArrayList { new Person { FirstName = "Child1", LastName = "Hathot" }, new Person { FirstName = "Child2", LastName = "Hathot" } },
-//         FamilyType = typeof(Family),
-//         FamilyNameBuilder = new StringBuilder("This is the built Family Name"),
-//     }.Dump().DumpDebug().DumpTrace().DumpText();
-//     //File.WriteAllText(@"S:\Programming\Github\Dumpify\textDump.txt", family);
-// }
 
 void TestSingle()
 {
@@ -386,15 +406,6 @@ void TestSingle()
     ("ItemA", "ItemB").Dump();
     Tuple.Create("ItemAA", "ItemBB").Dump();
 
-    // moaid.Dump(typeNames: new TypeNamingConfig { ShowTypeNames = false }, tableConfig: new TableConfig { ShowTableHeaders = false });
-
-    // var s = Enumerable.Range(0, 10).Select(i => $"#{i}").Dump();
-    // string.Join(", ", s).Dump();
-
-    //Test().Dump();
-
-    //IPAddress.IPv6Any.Dump();
-
     var map = new Dictionary<string, string>();
     map.Add("One", "1");
     map.Add("Two", "2");
@@ -407,47 +418,6 @@ void TestSingle()
     map2.Add("Moaid", new Person { FirstName = "Moaid", LastName = "Hathot" });
     map2.Add("Haneeni", new Person { FirstName = "Haneeni", LastName = "Shibli" });
     map2.Dump("Test Label");
-
-    //
-    // map.Dump(map.GetType().Name);
-    //
-    //
-    // map.Add("Five", "5");
-    // map.Add("Six", "6");
-    //
-    // map.Add("Seven", "7");
-    // // test.Sum(a => a.);
-    //
-    // var map2 = new ConcurrentDictionary<string, string>();
-    // map2.TryAdd("One", "1");
-    // map2.TryAdd("Two", "2");
-    // map2.TryAdd("Three", "3");
-    // map2.TryAdd("Four", "4");
-    // map2.Dump(map2.GetType().Name);
-    //
-    //
-    //
-    // var test = new Test();
-    // test.Add(new KeyValuePair<string, int>("One", 1));
-    // test.Add(new KeyValuePair<string, int>("Two", 2));
-    // test.Add(new KeyValuePair<string, int>("Three", 3));
-    // test.Add(new KeyValuePair<string, int>("Four", 4));
-    // test.Add(new KeyValuePair<string, int>("Five", 5));
-    // test.Dump();
-    //
-    //
-    // test.Dump(test.GetType().Name);
-    //
-    // async IAsyncEnumerable<int> Test()
-    // {
-    //     await Task.Yield();
-    //     yield return 1;
-    //     yield return 2;
-    //     yield return 3;
-    //     yield return 4;
-    // }
-
-    // new[] { new { Foo = moaid }, new { Foo = moaid }, new { Foo = moaid } }.Dump(label: "bla");
 
     var dataTable = new DataTable("Moaid Table");
     dataTable.Columns.Add("A");
@@ -505,14 +475,6 @@ void ShowEverything()
     moaid.Spouse = haneeni;
     haneeni.Spouse = moaid;
 
-    //DumpConfig.Default.Output = Outputs.Debug; //Outputs.Trace, Outputs.Console
-    //moaid.Dump(output: Outputs.Trace);
-    //moaid.DumpDebug();
-    //moaid.DumpTrace();
-
-    //moaid.Dump(output: myCustomOutput);
-
-
     DumpConfig.Default.TypeNamingConfig.UseAliases = true;
     DumpConfig.Default.TypeNamingConfig.UseFullName = true;
 
@@ -558,7 +520,6 @@ void ShowEverything()
     (10, "hello").Dump();
 
     var f = () => 10;
-    // f.Dump();
 
     family.Dump(label: "This is my family label");
 
@@ -581,66 +542,6 @@ void ShowEverything()
 
     new int[][] { new int[] { 1, 2, 3, 4 }, new int[] { 1, 2, 3, 4, 5 } }.Dump();
 
-    //moaid.Dump(label: "Test");
-    //moaid.Dump();
-
-    //new { Name = "MyBook", Author = new { FirstName = "Moaid", LastName = "Hathot", Address = new { Email = "moaid@test.com" } } }.Dump(maxDepth: 7, showTypeNames: true, showHeaders: true);
-    //moaid.Dump();
-
-    //DumpConfig.Default.ShowTypeNames = false;
-    //DumpConfig.Default.ShowHeaders = false;
-
-    //DumpConfig.Default.Generator.Generate(new { Name = "MyBook", Author = new { FirstName = "Moaid", LastName = "Hathot", Address = new { Email = "moaid@test.com" } } }.GetType(), null).Dump();
-    //moaid.Dump();
-
-    new { Name = "Dumpify", Description = "Dump any object to Console" }.Dump();
-    //new HashSet<string> { "Moaid", "Hathot", "shibli" }.Dump();
-
-
-    new Dictionary<Person, string>
-    {
-        [new Person { FirstName = "Moaid", LastName = "Hathot" }] = "Moaid Hathot",
-        [new Person { FirstName = "Haneeni", LastName = "Shibli" }] = "Haneeni Shibli",
-        [new Person { FirstName = "Waseem", LastName = "Hathot" }] = "Waseem Hathot",
-    }.Dump();
-
-    new Dictionary<string, Person>
-    {
-        ["Moaid"] = new Person { FirstName = "Moaid", LastName = "Hathot" },
-        ["Haneeni"] = new Person { FirstName = "Haneeni", LastName = "Shibli" },
-        ["Waseem"] = new Person { FirstName = "Waseem", LastName = "Hathot" },
-    }.Dump(colors: ColorConfig.NoColors);
-
-    new Dictionary<string, string>
-    {
-        ["Moaid"] = "Hathot",
-        ["Haneeni"] = "Shibli",
-        ["Eren"] = "Yeager",
-        ["Mikasa"] = "Ackerman",
-    }.Dump();
-
-    //ItemOrder.First.Dump();
-    //var d = DumpConfig.Default.Generator.Generate(ItemOrder.First.GetType(), null);
-    //d.Dump();
-
-
-    //var ao = new
-    //{
-    //    DateTime = DateTime.Now,
-    //    DateTimeUtc = DateTime.UtcNow,
-    //    DateTimeOffset = DateTimeOffset.Now,
-    //    DateOnly = DateOnly.FromDateTime(DateTime.Now),
-    //    TimeOnly = TimeOnly.FromDateTime(DateTime.Now),
-    //    TimeSpan = TimeSpan.FromMicroseconds(30324),
-    //}.Dump();
-
-    //var d = DumpConfig.Default.Generator.Generate(ao.GetType(), null);
-    //d.Dump();
-
-    //DumpConfig.Default.Generator.Generate(typeof(Family), null).Dump();
-
-    //var arr = new[,,] { { { 1, 2, 4 } }, { { 3, 4, 6 } }, { {1, 2, 88 } } }.Dump();
-
     var arr = new[] { 1, 2, 3, 4 }.Dump();
     var arr2d = new int[,]
     {
@@ -656,8 +557,6 @@ void ShowEverything()
     DumpConfig.Default.TableConfig.ShowRowIndices = true;
 
     moaid.Dump();
-
-    //new[] { "Hello", "World", "This", "Is", "Dumpy" }.Dump(renderer: Renderers.Text);
 
     new Exception(
         "This is an exception",
@@ -676,30 +575,6 @@ void ShowEverything()
         members: new() { IncludeFields = true, IncludeNonPublicMembers = true }
     );
 
-    //arr.Dump();
-    //moaid.Dump();
-
-
-    //family.Dump(maxDepth: 2);
-
-    //Console.WriteLine(JsonSerializer.Serialize(moaid));
-
-
-    //moaid.Dump();
-    //arr2d.Dump();
-
-    //moaid.Dump(maxDepth: 2);
-    //family.Dump(maxDepth: 2);
-    //arr.Dump();
-    //arr2d.Dump();
-    //((object)null).Dump();
-
-    //var result = DumpConfig.Default.Generator.Generate(family.GetType(), null);
-
-    //JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true });
-    //
-
-
     typeof(Person).Dump();
     new
     {
@@ -707,7 +582,6 @@ void ShowEverything()
         Methods = typeof(Person).GetMethods(),
         Fields = typeof(Person).GetFields(),
         Ctors = typeof(Person).GetConstructors(),
-        //Members = typeof(Person).GetMembers(),
         FooGuid = Guid.NewGuid(),
         Enum = Profession.Health,
         TimeSpan = TimeSpan.MinValue,
@@ -721,7 +595,16 @@ void ShowEverything()
     Guid.NewGuid().Dump("Guid");
     Guid.NewGuid().Dump();
 }
-#pragma warning restore CS8321
+
+#pragma warning disable CS8321
+#pragma warning disable CS0168
+
+public class Employee
+{
+    public required string Name { get; set; }
+    public required string Department { get; set; }
+    public decimal Salary { get; set; }
+}
 
 public enum Profession
 {
@@ -814,9 +697,6 @@ class TestExplicit : IEnumerable<(string, int)>, IEnumerable<KeyValuePair<string
 
     IEnumerator<(string, int)> IEnumerable<(string, int)>.GetEnumerator() => _list.GetEnumerator();
 
-    //IEnumerator<KeyValuePair<string, string>> IEnumerable<KeyValuePair<string, string>>.GetEnumerator()
-    //    => new TestEnumerator(_list);
-
     public IEnumerator GetEnumerator() => new TestEnumerator(_list);
 
     IEnumerator<KeyValuePair<string, int>> IEnumerable<KeyValuePair<string, int>>.GetEnumerator() =>
@@ -864,8 +744,6 @@ class TestExplicit : IEnumerable<(string, int)>, IEnumerable<KeyValuePair<string
 
         object IEnumerator.Current => _enumerator.Current;
     }
-
-    //private TestWrapper :
 }
 
 public class TestVirtual
