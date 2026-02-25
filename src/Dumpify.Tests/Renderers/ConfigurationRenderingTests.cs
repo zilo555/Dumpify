@@ -60,7 +60,7 @@ public class ConfigurationRenderingTests
     public Task TableConfig_ShowArrayIndices_True()
     {
         var data = new[] { "first", "second", "third" };
-        var output = data.DumpText(tableConfig: new TableConfig { ShowArrayIndices = true });
+        var output = data.DumpText(tableConfig: new TableConfig { ShowRowIndices = true });
         return Verify(output);
     }
     
@@ -68,7 +68,7 @@ public class ConfigurationRenderingTests
     public Task TableConfig_ShowArrayIndices_False()
     {
         var data = new[] { "first", "second", "third" };
-        var output = data.DumpText(tableConfig: new TableConfig { ShowArrayIndices = false });
+        var output = data.DumpText(tableConfig: new TableConfig { ShowRowIndices = false });
         return Verify(output);
     }
     
@@ -150,7 +150,7 @@ public class ConfigurationRenderingTests
         var data = new[] { new Person("Alice", 30), new Person("Bob", 25), new Person("Charlie", 35) };
         var config = new TableConfig
         {
-            ShowArrayIndices = true,
+            ShowRowIndices = true,
             ShowTableHeaders = true,
             ShowMemberTypes = true,
             ShowRowSeparators = true
@@ -676,7 +676,7 @@ public class ConfigurationRenderingTests
             maxDepth: 5,
             tableConfig: new TableConfig 
             { 
-                ShowArrayIndices = true,
+                ShowRowIndices = true,
                 ShowMemberTypes = true,
                 ShowRowSeparators = true
             },

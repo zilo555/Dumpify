@@ -1,0 +1,203 @@
+using Dumpify.Descriptors;
+using Dumpify.Descriptors.ValueProviders;
+using Spectre.Console;
+using Spectre.Console.Rendering;
+
+namespace Dumpify;
+
+/// <summary>
+/// Horizontal table layout strategy - LinqPad-style layout.
+/// - Single object: Properties as columns, single value row
+/// - Collection: Properties as columns, items as rows
+/// </summary>
+internal class HorizontalTableLayoutStrategy : ITableLayoutStrategy
+{
+    /// <summary>
+    /// Horizontal layout shows row indices by default.
+    /// </summary>
+    public bool DefaultShowRowIndices => true;
+
+    public void ConfigureObjectTable(
+        ObjectTableBuilder builder,
+        object obj,
+        ObjectDescriptor descriptor,
+        RenderContext<SpectreRendererState> context,
+        Func<object, IDescriptor, RenderContext<SpectreRendererState>, (bool success, object? value, IRenderable rendered)> getValueAndRender)
+    {
+        var properties = descriptor.Properties.ToList();
+
+        if (properties.Count == 0)
+        {
+            // No properties - fall back to vertical-like single cell
+            builder.AddColumnName(context.Config.TypeNameProvider.GetTypeName(descriptor.Type));
+            builder.AddRow(descriptor, obj, new Markup(Markup.Escape(obj.ToString() ?? "")));
+            return;
+        }
+
+        // Add columns for each property
+        foreach (var property in properties)
+        {
+            builder.AddColumnName(property.Name);
+        }
+
+        // Add single row with all property values
+        var rowCells = new List<IRenderable>();
+        foreach (var property in properties)
+        {
+            var (success, value, renderedValue) = getValueAndRender(obj, property, context with { CurrentDepth = context.CurrentDepth + 1 });
+            rowCells.Add(renderedValue);
+        }
+
+        builder.AddRow(descriptor, obj, rowCells);
+    }
+
+    public void ConfigureCollectionTable(
+        ObjectTableBuilder builder,
+        TruncatedEnumerable<object?> items,
+        MultiValueDescriptor descriptor,
+        RenderContext<SpectreRendererState> context,
+        Func<object?, IDescriptor?, RenderContext<SpectreRendererState>, IRenderable> renderItem,
+        Func<TruncationMarker, IRenderable> renderMarker)
+    {
+        var elementType = descriptor.ElementsType;
+
+        // Check if we can use horizontal layout (element type has properties)
+        if (elementType == null || !CanUseHorizontalLayout(elementType, context))
+        {
+            // Fall back to vertical layout for primitives/unknown types
+            new VerticalTableLayoutStrategy().ConfigureCollectionTable(
+                builder, items, descriptor, context, renderItem, renderMarker);
+            return;
+        }
+
+        // Get the object descriptor for the element type
+        var elementDescriptor = DumpConfig.Default.Generator.Generate(elementType, null, context.Config.MemberProvider) as ObjectDescriptor;
+
+        if (elementDescriptor == null || !elementDescriptor.Properties.Any())
+        {
+            // Fall back to vertical layout
+            new VerticalTableLayoutStrategy().ConfigureCollectionTable(
+                builder, items, descriptor, context, renderItem, renderMarker);
+            return;
+        }
+
+        // Set the table title to show the collection type and count
+        var typeName = GetCollectionTypeName(descriptor.Type, items.TotalCount, context);
+        builder.SetTitle(typeName);
+
+        // Hide headers if configured
+        if (!context.Config.TableConfig.ShowTableHeaders)
+        {
+            builder.HideHeaders();
+        }
+
+        var properties = elementDescriptor.Properties.ToList();
+
+        // Add columns for each property
+        foreach (var property in properties)
+        {
+            builder.AddColumnName(property.Name);
+        }
+
+        // Render items
+        items.ForEachWithMarkers(
+            onMarker: marker =>
+            {
+                // For markers, add a row with the marker in first cell and empty cells for rest
+                var markerCells = new List<IRenderable>();
+                var renderedMarker = renderMarker(marker);
+                markerCells.Add(renderedMarker);
+
+                // Fill remaining cells with empty markup
+                for (int i = 1; i < properties.Count; i++)
+                {
+                    markerCells.Add(new Markup(""));
+                }
+
+                builder.AddMarkerRow(markerCells);
+            },
+            onItem: (item, _) =>
+            {
+                if (item == null)
+                {
+                    // Null item - render null in first cell, empty in rest
+                    // Null items are treated as marker rows (no index)
+                    var nullCells = new List<IRenderable>();
+                    nullCells.Add(renderItem(null, null, context));
+                    for (int i = 1; i < properties.Count; i++)
+                    {
+                        nullCells.Add(new Markup(""));
+                    }
+                    builder.AddMarkerRow(nullCells);
+                    return;
+                }
+
+                var rowCells = new List<IRenderable>();
+
+                foreach (var property in properties)
+                {
+                    var value = GetPropertyValue(item, property);
+                    var valueDescriptor = value != null
+                        ? DumpConfig.Default.Generator.Generate(value.GetType(), null, context.Config.MemberProvider)
+                        : property;
+
+                    var renderedValue = renderItem(value, valueDescriptor, context with { CurrentDepth = context.CurrentDepth + 1 });
+                    rowCells.Add(renderedValue);
+                }
+
+                builder.AddRow(elementDescriptor, item, rowCells);
+            });
+    }
+
+    private static bool CanUseHorizontalLayout(Type type, RenderContext<SpectreRendererState> context)
+    {
+        // Primitives, strings, and simple value types should use vertical
+        if (type.IsPrimitive || type == typeof(string) || type == typeof(decimal) ||
+            type == typeof(DateTime) || type == typeof(DateTimeOffset) ||
+            type == typeof(TimeSpan) || type == typeof(Guid))
+        {
+            return false;
+        }
+
+        // Enums should use vertical
+        if (type.IsEnum)
+        {
+            return false;
+        }
+
+        // Check if the type has any properties we can display
+        var descriptor = DumpConfig.Default.Generator.Generate(type, null, context.Config.MemberProvider) as ObjectDescriptor;
+        return descriptor != null && descriptor.Properties.Any();
+    }
+
+    private static string GetCollectionTypeName(Type type, int itemCount, RenderContext<SpectreRendererState> context)
+    {
+        if (type.IsArray)
+        {
+            var elementTypeName = type.GetElementType() is { } elementType
+                ? context.Config.TypeNameProvider.GetTypeName(elementType)
+                : "";
+
+            return $"{elementTypeName}[{itemCount}]";
+        }
+
+        return context.Config.TypeNameProvider.GetTypeName(type);
+    }
+
+    private static object? GetPropertyValue(object obj, IDescriptor property)
+    {
+        if (property.ValueProvider is IValueProvider valueProvider)
+        {
+            try
+            {
+                return valueProvider.GetValue(obj);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        return null;
+    }
+}

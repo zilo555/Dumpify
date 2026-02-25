@@ -18,6 +18,47 @@ using System.Text;
 // new[] { 1, 2, 3,  4, 5, 6, 7, 8, 9, 10 }.Dump(tableConfig: new TableConfig { MaxCollectionCount = 3 });
 // DumpConfig.Default.TableConfig.BorderStyle = TableBorderStyle.Ascii;
 Console.WriteLine("---------------------");
+Console.WriteLine("=== Testing Truncation ===");
+
+// Test array with truncation
+var numbers = new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+numbers.Dump("Array with truncation", truncationConfig: new TruncationConfig { MaxCollectionCount = 5 });
+
+Console.WriteLine("---------------------");
+Console.WriteLine("=== Testing Horizontal Layout ===");
+
+// Test simple object with horizontal layout
+var testPerson = new Person
+{
+    FirstName = "Moaid",
+    LastName = "Hathot",
+    Profession = Profession.Software
+};
+
+Console.WriteLine("\n--- Single object with VERTICAL (default) layout ---");
+testPerson.Dump("Vertical Layout");
+
+Console.WriteLine("\n--- Single object with HORIZONTAL layout ---");
+testPerson.Dump("Horizontal Layout", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+
+// Test collection with horizontal layout
+var people = new[]
+{
+    new Person { FirstName = "Moaid", LastName = "Hathot", Profession = Profession.Software },
+    new Person { FirstName = "Haneeni", LastName = "Shibli", Profession = Profession.Health }
+};
+
+Console.WriteLine("\n--- Collection with VERTICAL (default) layout ---");
+people.Dump("Vertical Collection");
+
+Console.WriteLine("\n--- Collection with HORIZONTAL layout ---");
+people.Dump("Horizontal Collection", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+people.ToList().Dump("Horizontal Collection List", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+people.ToList().Dump("Horizontal Collection List with rowIndices", tableConfig: new TableConfig { TableLayout = TableLayout.Vertical, ShowRowIndices = true });
+
+Console.WriteLine("\n=== End Horizontal Layout Test ===");
+Console.WriteLine("---------------------");
+
     var moaid1 = new Person
     {
         FirstName = "Moaid",
@@ -31,9 +72,38 @@ Console.WriteLine("---------------------");
         LastName = "Shibli",
         Profession = Profession.Health
     };
+    var lily1 = new Person
+    {
+        FirstName = "Lily",
+        LastName = "Hathot",
+        Profession = Profession.Software
+    };
 
-moaid1.Spouse = haneeni1;
-haneeni1.Spouse = moaid1;
+new []{ moaid1, haneeni1, lily1 }.Dump("Family Members", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal});
+new []{ moaid1, haneeni1, lily1 }.Dump("Family Members", tableConfig: new TableConfig { TableLayout = TableLayout.Vertical});
+
+
+// moaid1.Spouse = haneeni1;
+// haneeni1.Spouse = moaid1;
+
+moaid1.Dump("Moaid with Spouse");
+moaid1.Dump("Horizontal Layout", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+
+new Dictionary<string, Person>
+{
+    ["Moaid"] = moaid1,
+    ["Haneeni"] = haneeni1
+}.Dump("Dictionary of People");
+
+
+new Dictionary<string, Person>
+{
+    ["Moaid"] = moaid1,
+    ["Haneeni"] = haneeni1
+}.Dump("Dictionary of People", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+
+new []{ moaid1, haneeni1 }.Dump("Array of People");
+new []{ moaid1, haneeni1 }.Dump("Array of People", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
 
 // moaid1.Dump("Moaid");
 // new [] { moaid1, haneieni1 }.Dump();
@@ -41,9 +111,9 @@ haneeni1.Spouse = moaid1;
     // moaid1.Dump("Override per dump", tableConfig: new TableConfig { BorderStyle = TableBorderStyle.Minimal, ShowRowSeparators = true });
     // moaid1.Dump("Use globali 2", maxDepth: 1);
 
-    Enumerable.Range(0, 10).ToDictionary(i => i).Dump("Enumerable Range", truncationConfig: new TruncationConfig { MaxCollectionCount = 3, Mode = TruncationMode.Tail });
-    Enumerable.Range(0, 10).ToDictionary(i => i).Dump("Enumerable Range", truncationConfig: new TruncationConfig { MaxCollectionCount = 3, Mode = TruncationMode.HeadAndTail });
-    Enumerable.Range(0, 10).ToDictionary(i => i).Dump("Enumerable Range", truncationConfig: new TruncationConfig { MaxCollectionCount = 3, Mode = TruncationMode.HeadAndTail, PerDimension = true });
+    // Enumerable.Range(0, 10).ToDictionary(i => i).Dump("Enumerable Range", truncationConfig: new TruncationConfig { MaxCollectionCount = 3, Mode = TruncationMode.Tail });
+    // Enumerable.Range(0, 10).ToDictionary(i => i).Dump("Enumerable Range", truncationConfig: new TruncationConfig { MaxCollectionCount = 3, Mode = TruncationMode.HeadAndTail });
+    // Enumerable.Range(0, 10).ToDictionary(i => i).Dump("Enumerable Range", truncationConfig: new TruncationConfig { MaxCollectionCount = 3, Mode = TruncationMode.HeadAndTail, PerDimension = true });
 
 //
 // var lazy = new Lazy<int>(()=> 10);
@@ -575,12 +645,12 @@ void ShowEverything()
         { 3, 4 }
     }.Dump();
 
-    DumpConfig.Default.TableConfig.ShowArrayIndices = false;
+    DumpConfig.Default.TableConfig.ShowRowIndices = false;
 
     arr.Dump();
     arr2d.Dump();
 
-    DumpConfig.Default.TableConfig.ShowArrayIndices = true;
+    DumpConfig.Default.TableConfig.ShowRowIndices = true;
 
     moaid.Dump();
 

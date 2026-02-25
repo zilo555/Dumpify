@@ -21,7 +21,7 @@ public class ConfigMergeTests
     {
         var baseConfig = new TableConfig
         {
-            ShowArrayIndices = false,
+            ShowRowIndices = false,
             ShowTableHeaders = false,
             ShowMemberTypes = true,
             ShowRowSeparators = true,
@@ -33,7 +33,7 @@ public class ConfigMergeTests
 
         var result = baseConfig.MergeWith(overrideConfig);
 
-        Assert.False(result.ShowArrayIndices);
+        Assert.False(result.ShowRowIndices);
         Assert.False(result.ShowTableHeaders);
         Assert.True(result.ShowMemberTypes);
         Assert.True(result.ShowRowSeparators);
@@ -50,8 +50,8 @@ public class ConfigMergeTests
             BorderStyle = TableBorderStyle.Heavy
         };
 
-        // Only override ShowArrayIndices
-        var overrideConfig = new TableConfig { ShowArrayIndices = false };
+        // Only override ShowRowIndices
+        var overrideConfig = new TableConfig { ShowRowIndices = false };
 
         var result = baseConfig.MergeWith(overrideConfig);
 
@@ -61,14 +61,14 @@ public class ConfigMergeTests
         Assert.Equal(TableBorderStyle.Heavy, (TableBorderStyle)result.BorderStyle);
 
         // Override value should be applied
-        Assert.False(result.ShowArrayIndices);
+        Assert.False(result.ShowRowIndices);
     }
 
     [Fact]
     public void TableConfig_MergeWith_CreatesNewInstance()
     {
         var baseConfig = new TableConfig { ShowMemberTypes = true };
-        var overrideConfig = new TableConfig { ShowArrayIndices = false };
+        var overrideConfig = new TableConfig { ShowRowIndices = false };
 
         var result = baseConfig.MergeWith(overrideConfig);
 
@@ -82,7 +82,7 @@ public class ConfigMergeTests
         // Base config has non-default values
         var baseConfig = new TableConfig
         {
-            ShowArrayIndices = false,  // default is true
+            ShowRowIndices = false,  // default is true
             ShowTableHeaders = false,  // default is true
         };
 
@@ -90,14 +90,14 @@ public class ConfigMergeTests
         // With TrackableProperty, this should now override the base
         var overrideConfig = new TableConfig
         {
-            ShowArrayIndices = true,   // explicitly set to default
+            ShowRowIndices = true,   // explicitly set to default
             ShowTableHeaders = true,   // explicitly set to default
         };
 
         var result = baseConfig.MergeWith(overrideConfig);
 
         // The override's explicit values should be used, even though they equal defaults
-        Assert.True(result.ShowArrayIndices);
+        Assert.True(result.ShowRowIndices);
         Assert.True(result.ShowTableHeaders);
     }
 
@@ -106,7 +106,7 @@ public class ConfigMergeTests
     {
         var config = new TableConfig();
 
-        Assert.False(config.ShowArrayIndices.IsSet);
+        Assert.False(config.ShowRowIndices.IsSet);
         Assert.False(config.ShowTableHeaders.IsSet);
         Assert.False(config.ShowMemberTypes.IsSet);
         Assert.False(config.BorderStyle.IsSet);
@@ -117,10 +117,10 @@ public class ConfigMergeTests
     {
         var config = new TableConfig
         {
-            ShowArrayIndices = true,  // same as default, but explicitly set
+            ShowRowIndices = true,  // same as default, but explicitly set
         };
 
-        Assert.True(config.ShowArrayIndices.IsSet);
+        Assert.True(config.ShowRowIndices.IsSet);
         Assert.False(config.ShowTableHeaders.IsSet);  // not set
     }
 

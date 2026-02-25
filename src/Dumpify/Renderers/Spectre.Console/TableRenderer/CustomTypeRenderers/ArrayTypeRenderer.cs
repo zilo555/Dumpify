@@ -31,23 +31,16 @@ internal class ArrayTypeRenderer(IRendererHandler<IRenderable, SpectreRendererSt
 
     private IRenderable RenderSingleDimensionArray(Array obj, MultiValueDescriptor mvd, RenderContext<SpectreRendererState> context)
     {
-        var builder = new ObjectTableBuilder(context, mvd, obj)
-            .HideTitle();
+        // Resolve the layout strategy for the element type
+        var (strategy, layoutResult) = TableLayoutResolver.Resolve(mvd.ElementsType, context);
 
-        var showIndexes = context.Config.TableConfig.ShowArrayIndices;
+        var builder = new ObjectTableBuilder(context, mvd, obj);
 
-        RowIndicesTableBuilderBehavior? rowIndicesBehavior = showIndexes ? new() : null;
-        if (rowIndicesBehavior != null)
+        // Add row indices behavior if needed
+        // Arrays default to showing indices (backward compatibility), unless explicitly disabled
+        if (ShouldShowRowIndicesForArray(context, layoutResult))
         {
-            builder.AddBehavior(rowIndicesBehavior);
-        }
-
-        var elementName = mvd.ElementsType is null ? "" : context.Config.TypeNameProvider.GetTypeName(mvd.ElementsType);
-        builder.AddColumnName($"{elementName}[{obj.GetLength(0)}]", new Style(foreground: context.Config.ColorConfig.TypeNameColor.ToSpectreColor()));
-
-        if (!context.Config.TableConfig.ShowTableHeaders || !context.Config.TypeNamingConfig.ShowTypeNames)
-        {
-            builder.HideHeaders();
+            builder.AddBehavior(new RowIndicesTableBuilderBehavior());
         }
 
         // Use centralized truncation
@@ -56,31 +49,44 @@ internal class ArrayTypeRenderer(IRendererHandler<IRenderable, SpectreRendererSt
             context.Config.TruncationConfig.MaxCollectionCount,
             context.Config.TruncationConfig.Mode);
 
-        // Track current row for index behavior
-        int currentRow = 0;
-
-        truncated.ForEachWithMarkers(
-            onMarker: marker =>
-            {
-                rowIndicesBehavior?.AddHideIndexForRow(currentRow, "");
-                var color = context.State.Colors.MetadataInfoColor;
-                var renderedMarker = new Markup(Markup.Escape(marker.GetDefaultMessage()), new Style(foreground: color));
-                builder.AddRow(null, null, renderedMarker);
-                currentRow++;
-            },
-            onItem: (item, _) =>
-            {
-                var type = item?.GetType() ?? mvd.ElementsType;
-                IDescriptor? itemsDescriptor = type is not null
-                    ? DumpConfig.Default.Generator.Generate(type, null, context.Config.MemberProvider)
-                    : null;
-
-                var renderedItem = _handler.RenderDescriptor(item, itemsDescriptor, context);
-                builder.AddRow(itemsDescriptor, item, renderedItem);
-                currentRow++;
-            });
+        // Delegate to the strategy
+        strategy.ConfigureCollectionTable(
+            builder,
+            truncated,
+            mvd,
+            context,
+            (item, itemDescriptor, ctx) => _handler.RenderDescriptor(item, itemDescriptor, ctx),
+            marker => RenderTruncationMarker(marker, context));
 
         return builder.Build();
+    }
+
+    /// <summary>
+    /// Determines if row indices should be shown for arrays.
+    /// Arrays default to showing indices (backward compatibility).
+    /// </summary>
+    private static bool ShouldShowRowIndicesForArray(RenderContext<SpectreRendererState> context, TableLayoutResult? layoutResult)
+    {
+        // 1. Check layout result override
+        if (layoutResult?.ShowRowIndices is bool ruleOverride)
+        {
+            return ruleOverride;
+        }
+
+        // 2. Check if config value was explicitly set
+        if (context.Config.TableConfig.ShowRowIndices.IsSet)
+        {
+            return context.Config.TableConfig.ShowRowIndices.Value;
+        }
+
+        // 3. Arrays default to true (backward compatibility)
+        return true;
+    }
+
+    private static IRenderable RenderTruncationMarker(TruncationMarker marker, RenderContext<SpectreRendererState> context)
+    {
+        var color = context.State.Colors.MetadataInfoColor;
+        return new Markup(Markup.Escape(marker.GetDefaultMessage()), new Style(foreground: color));
     }
 
     private IRenderable RenderTwoDimensionalArray(Array obj, MultiValueDescriptor descriptor, RenderContext baseContext)
@@ -157,7 +163,7 @@ internal class ArrayTypeRenderer(IRendererHandler<IRenderable, SpectreRendererSt
         {
             rowIndicesBehavior.AddHideIndexForRow(currentRow, rowTruncated.StartMarker.GetCompactMessage());
             var cells = CreateEmptyCells(colTruncated);
-            builder.AddRow(null, null, cells);
+            builder.AddMarkerRow(cells);
             currentRow++;
         }
 
@@ -169,7 +175,7 @@ internal class ArrayTypeRenderer(IRendererHandler<IRenderable, SpectreRendererSt
             {
                 rowIndicesBehavior.AddHideIndexForRow(currentRow, rowTruncated.MiddleMarker.GetCompactMessage());
                 var cells = CreateEmptyCells(colTruncated);
-                builder.AddRow(null, null, cells);
+                builder.AddMarkerRow(cells);
                 currentRow++;
             }
 
@@ -217,7 +223,7 @@ internal class ArrayTypeRenderer(IRendererHandler<IRenderable, SpectreRendererSt
         {
             rowIndicesBehavior.AddHideIndexForRow(currentRow, rowTruncated.EndMarker.GetCompactMessage());
             var cells = CreateEmptyCells(colTruncated);
-            builder.AddRow(null, null, cells);
+            builder.AddMarkerRow(cells);
         }
 
         return builder.Build();

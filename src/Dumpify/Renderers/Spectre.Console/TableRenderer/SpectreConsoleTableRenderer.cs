@@ -29,64 +29,56 @@ internal class SpectreConsoleTableRenderer : SpectreConsoleRendererBase
 
     private IRenderable RenderIEnumerable(IEnumerable obj, MultiValueDescriptor descriptor, RenderContext<SpectreRendererState> context)
     {
-        var builder = new ObjectTableBuilder(context, descriptor, obj)
-            .HideTitle();
+        // Resolve the layout strategy for the element type
+        var (strategy, layoutResult) = TableLayoutResolver.Resolve(descriptor.ElementsType, context);
 
-        var typeName = GetTypeName(descriptor.Type);
-        builder.AddColumnName(typeName, new Style(foreground: context.State.Colors.TypeNameColor));
+        var builder = new ObjectTableBuilder(context, descriptor, obj);
+
+        // Add row indices behavior if needed
+        // Horizontal layout shows row indices by default, vertical does not
+        // But explicit ShowRowIndices setting overrides the default
+        if (TableLayoutResolver.ShouldShowRowIndices(context, strategy, layoutResult))
+        {
+            builder.AddBehavior(new RowIndicesTableBuilderBehavior());
+        }
 
         // Use the centralized truncation utility
         var truncated = CollectionTruncator.Truncate(
             obj.Cast<object?>(),
             context.Config.TruncationConfig);
 
-        truncated.ForEachWithMarkers(
-            onMarker: marker =>
-            {
-                var renderedMarker = RenderTruncationMarker(marker, context);
-                builder.AddRow(null, null, renderedMarker);
-            },
-            onItem: (item, _) =>
-            {
-                var type = descriptor.ElementsType ?? item?.GetType();
-
-                IDescriptor? itemsDescriptor = type is not null
-                    ? DumpConfig.Default.Generator.Generate(type, null, context.Config.MemberProvider)
-                    : null;
-
-                var renderedItem = RenderDescriptor(item, itemsDescriptor, context);
-                builder.AddRow(itemsDescriptor, item, renderedItem);
-            });
+        // Delegate to the strategy
+        strategy.ConfigureCollectionTable(
+            builder,
+            truncated,
+            descriptor,
+            context,
+            (item, itemDescriptor, ctx) => RenderDescriptor(item, itemDescriptor, ctx),
+            marker => RenderTruncationMarker(marker, context));
 
         return builder.Build();
-
-        string GetTypeName(Type type)
-        {
-            if (!type.IsArray)
-            {
-                return context.Config.TypeNameProvider.GetTypeName(type);
-            }
-
-            var (name, rank) = context.Config.TypeNameProvider.GetJaggedArrayNameWithRank(type);
-            return $"{name}[{new string(',', rank + 1)}]";
-        }
     }
 
     protected override IRenderable RenderObjectDescriptor(object obj, ObjectDescriptor descriptor, RenderContext<SpectreRendererState> context)
     {
-        var builder = new ObjectTableBuilder(context, descriptor, obj)
-            .AddDefaultColumnNames();
+        // Resolve the layout strategy for the object type
+        var (strategy, layoutResult) = TableLayoutResolver.Resolve(descriptor.Type, context);
 
-        if (context.Config.TableConfig.ShowMemberTypes)
+        var builder = new ObjectTableBuilder(context, descriptor, obj);
+
+        // Add member types behavior if needed
+        if (TableLayoutResolver.ShouldShowMemberTypes(context, layoutResult))
         {
             builder.AddBehavior(new RowTypeTableBuilderBehavior());
         }
 
-        foreach (var property in descriptor.Properties)
-        {
-            var (success, value, renderedValue) = GetValueAndRender(obj, property.ValueProvider!, property, context with { CurrentDepth = context.CurrentDepth + 1 });
-            builder.AddRowWithObjectName(property, value, renderedValue);
-        }
+        // Delegate to the strategy
+        strategy.ConfigureObjectTable(
+            builder,
+            obj,
+            descriptor,
+            context,
+            (source, property, ctx) => GetValueAndRender(source, property.ValueProvider!, property, ctx));
 
         return builder.Build();
     }

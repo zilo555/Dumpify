@@ -15,6 +15,7 @@ internal class ObjectTableBuilder
 
     private readonly List<IEnumerable<IRenderable>> _rows = new();
     private readonly List<IRenderable> _columnNames = new(2);
+    private readonly HashSet<int> _markerRows = new();
 
     private (string? title, Style? style)? _title = default;
 
@@ -36,7 +37,7 @@ internal class ObjectTableBuilder
 
     //todo: this should be an extension method
     public ObjectTableBuilder AddDefaultColumnNames()
-        => SetColumnNames(new[] { "Name", "Value" });
+        => SetColumnNames(["Name", "Value"]);
 
     public ObjectTableBuilder AddColumnName(string columnName, Style? style)
     {
@@ -95,6 +96,24 @@ internal class ObjectTableBuilder
         return this;
     }
 
+    /// <summary>
+    /// Adds a marker row (e.g., truncation indicator) that should not display a row index.
+    /// </summary>
+    public ObjectTableBuilder AddMarkerRow(IEnumerable<IRenderable> renderables)
+    {
+        _markerRows.Add(_rows.Count);
+
+        foreach (var behavior in _behaviors)
+        {
+            var additional = behavior.GetAdditionalCells(null, null, _context);
+            renderables = additional.Concat(renderables);
+        }
+
+        _rows.Add(renderables);
+
+        return this;
+    }
+
     public ObjectTableBuilder AddRow(IDescriptor? descriptor, object? obj, params IRenderable[] renderables)
         => AddRow(descriptor, obj, (IEnumerable<IRenderable>)renderables);
 
@@ -128,12 +147,13 @@ internal class ObjectTableBuilder
     private IEnumerable<IRenderable> GetBehaviorColumns()
         => _behaviors.SelectMany(b => b.GetAdditionalColumns(_context));
 
-    private IEnumerable<IRenderable> GetBehaviorRows(Table table)
+    private IEnumerable<IRenderable> GetBehaviorRows(Table table, int rowIndex)
     {
         var behaviorContext = new BehaviorContext
         {
             TotalAvailableRows = _rows.Count,
             AddedRows = table.Rows.Count,
+            IsMarkerRow = _markerRows.Contains(rowIndex),
         };
 
         return _behaviors.SelectMany(b => b.GetAdditionalRowElements(behaviorContext, _context));
@@ -190,9 +210,10 @@ internal class ObjectTableBuilder
             table.AddColumn(tableColumn);
         }
 
-        foreach (var row in _rows)
+        for (var i = 0; i < _rows.Count; i++)
         {
-            var additional = GetBehaviorRows(table);
+            var row = _rows[i];
+            var additional = GetBehaviorRows(table, i);
             var fullRow = additional.Concat(row);
 
             table.AddRow(fullRow);
