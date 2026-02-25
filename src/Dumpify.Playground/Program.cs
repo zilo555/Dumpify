@@ -17,6 +17,9 @@ using System.Text;
 // Tuple.Create(1, 2, 3, 4, 5, 6, 7, Tuple.Create(8, 9, 10, 11)).Dump("System.Tuple");
 // new[] { 1, 2, 3,  4, 5, 6, 7, 8, 9, 10 }.Dump(tableConfig: new TableConfig { MaxCollectionCount = 3 });
 // DumpConfig.Default.TableConfig.BorderStyle = TableBorderStyle.Ascii;
+
+new { Name = "Moaid", FamilyName = "Hathot", Age = 35, Birthday = new DateOnly(1988, 09, 30), Birthday2 = DateTime.Parse("1988.09.30") }.Dump("Simple object");
+new { Name = "Moaid", FamilyName = "Hathot", Age = 35, Birthday = new DateOnly(1988, 09, 30), Birthday2 = DateTime.Parse("1988.09.30") }.Dump("Simple object", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal});
 Console.WriteLine("---------------------");
 Console.WriteLine("=== Testing Truncation ===");
 

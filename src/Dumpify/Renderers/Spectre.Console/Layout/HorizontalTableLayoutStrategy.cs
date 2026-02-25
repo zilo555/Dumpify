@@ -151,23 +151,17 @@ internal class HorizontalTableLayoutStrategy : ITableLayoutStrategy
 
     private static bool CanUseHorizontalLayout(Type type, RenderContext<SpectreRendererState> context)
     {
-        // Primitives, strings, and simple value types should use vertical
-        if (type.IsPrimitive || type == typeof(string) || type == typeof(decimal) ||
-            type == typeof(DateTime) || type == typeof(DateTimeOffset) ||
-            type == typeof(TimeSpan) || type == typeof(Guid))
+        // Use the descriptor system to determine the type category
+        var descriptor = DumpConfig.Default.Generator.Generate(type, null, context.Config.MemberProvider);
+
+        // SingleValueDescriptor types (primitives, strings, etc.) should use vertical
+        if (descriptor is SingleValueDescriptor)
         {
             return false;
         }
 
-        // Enums should use vertical
-        if (type.IsEnum)
-        {
-            return false;
-        }
-
-        // Check if the type has any properties we can display
-        var descriptor = DumpConfig.Default.Generator.Generate(type, null, context.Config.MemberProvider) as ObjectDescriptor;
-        return descriptor != null && descriptor.Properties.Any();
+        // ObjectDescriptor with properties can use horizontal layout
+        return descriptor is ObjectDescriptor objDescriptor && objDescriptor.Properties.Any();
     }
 
     private static string GetCollectionTypeName(Type type, int itemCount, RenderContext<SpectreRendererState> context)
