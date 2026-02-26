@@ -10,17 +10,21 @@ internal class TableLayoutResolver
     /// </summary>
     /// <param name="type">The type to resolve layout for.</param>
     /// <param name="context">The render context.</param>
+    /// <param name="isCollectionElement">Whether this type is being rendered as part of a collection.</param>
+    /// <param name="containerType">The container type if rendering as part of a collection.</param>
     /// <returns>A tuple of the strategy and optional layout result with config overrides.</returns>
     public static (ITableLayoutStrategy strategy, TableLayoutResult? layoutResult) Resolve(
         Type? type,
-        RenderContext<SpectreRendererState> context)
+        RenderContext<SpectreRendererState> context,
+        bool isCollectionElement = false,
+        Type? containerType = null)
     {
         TableLayoutResult? matchedResult = null;
 
         // Check layout rules in order
         if (type != null)
         {
-            var layoutContext = new TableLayoutContext(type, context.CurrentDepth);
+            var layoutContext = new TableLayoutContext(type, context.CurrentDepth, isCollectionElement, containerType);
             foreach (var rule in context.Config.TableConfig.LayoutRules)
             {
                 var result = rule.Resolver(layoutContext);

@@ -32,7 +32,12 @@ internal class ArrayTypeRenderer(IRendererHandler<IRenderable, SpectreRendererSt
     private IRenderable RenderSingleDimensionArray(Array obj, MultiValueDescriptor mvd, RenderContext<SpectreRendererState> context)
     {
         // Resolve the layout strategy for the element type
-        var (strategy, layoutResult) = TableLayoutResolver.Resolve(mvd.ElementsType, context);
+        // Pass isCollectionElement=true and the container type so rules can check if rendering inside a collection
+        var (strategy, layoutResult) = TableLayoutResolver.Resolve(
+            mvd.ElementsType,
+            context,
+            isCollectionElement: true,
+            containerType: mvd.Type);
 
         var builder = new ObjectTableBuilder(context, mvd, obj);
 

@@ -30,7 +30,12 @@ internal class SpectreConsoleTableRenderer : SpectreConsoleRendererBase
     private IRenderable RenderIEnumerable(IEnumerable obj, MultiValueDescriptor descriptor, RenderContext<SpectreRendererState> context)
     {
         // Resolve the layout strategy for the element type
-        var (strategy, layoutResult) = TableLayoutResolver.Resolve(descriptor.ElementsType, context);
+        // Pass isCollectionElement=true and the container type so rules can check if rendering inside a collection
+        var (strategy, layoutResult) = TableLayoutResolver.Resolve(
+            descriptor.ElementsType,
+            context,
+            isCollectionElement: true,
+            containerType: descriptor.Type);
 
         var builder = new ObjectTableBuilder(context, descriptor, obj);
 

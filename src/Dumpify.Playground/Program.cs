@@ -3,145 +3,165 @@ using System.Collections;
 using System.Data;
 using System.Text;
 
-// =============================================================================
-// Horizontal Layout Demo - Showcasing rendering flexibility
-// =============================================================================
+typeof(string).Dump("Single string");
+// Use the new IsCollectionElement property to set horizontal layout for all collection elements
+DumpConfig.Default.TableConfig.SetLayoutWhen(context => context.IsCollectionElement, TableLayout.Horizontal);
 
-Console.WriteLine("=== Horizontal Layout Demo ===\n");
-
-// 1. Simple object - properties as columns
-Console.WriteLine("1. Single Object");
-var product = new { Name = "Laptop", Price = 999.99m, InStock = true };
-product.Dump("Vertical (default)");
-product.Dump("Horizontal", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
-
-// 2. Collection of objects - each item as a row, properties as columns
-Console.WriteLine("\n2. Collection of Objects");
-var products = new[]
+var msft = new { Name = "Microsoft", Employees = new[]
 {
-    new { Name = "Laptop", Price = 999.99m, InStock = true },
-    new { Name = "Mouse", Price = 29.99m, InStock = true },
-    new { Name = "Keyboard", Price = 79.99m, InStock = false },
-};
-products.Dump("Horizontal Products", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+    new Employee { Salary = 1, Name = "Alice", Department = "HR" },
+    new Employee { Salary = 2, Name = "Bob", Department = "IT" },
+    new Employee { Salary = 3, Name = "Charlie", Department = "Finance" }
+}}.Dump("Company with Employees");
 
-// 3. Nested objects - nested tables preserve their own structure
-Console.WriteLine("\n3. Nested Objects");
-var order = new
+msft.Dump("Company with Employees - Show Types", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+
+// employees.Dump();
+
+new []{ "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" }.Dump();
+// DemoTableLayoutFeatures();
+
+// =============================================================================
+// Table Layout Demo - Showcasing rendering flexibility
+// =============================================================================
+#pragma warning disable CS8321 // Local function is declared but never used
+void DemoTableLayoutFeatures()
 {
-    OrderId = 1001,
-    Customer = "Alice",
-    Items = new[]
+    Console.WriteLine("=== Horizontal Layout Demo ===\n");
+
+    // 1. Simple object - properties as columns
+    Console.WriteLine("1. Single Object");
+    var product = new { Name = "Laptop", Price = 999.99m, InStock = true };
+    product.Dump("Vertical (default)");
+    product.Dump("Horizontal", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+
+    // 2. Collection of objects - each item as a row, properties as columns
+    Console.WriteLine("\n2. Collection of Objects");
+    var products = new[]
     {
-        new { Product = "Laptop", Qty = 1 },
-        new { Product = "Mouse", Qty = 2 },
-    }
-};
-order.Dump("Order with nested items", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+        new { Name = "Laptop", Price = 999.99m, InStock = true },
+        new { Name = "Mouse", Price = 29.99m, InStock = true },
+        new { Name = "Keyboard", Price = 79.99m, InStock = false },
+    };
+    products.Dump("Horizontal Products", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
 
-// 4. Mixed types in collection - graceful handling
-Console.WriteLine("\n4. Row Separators");
-var employees = new[]
-{
-    new Employee { Name = "Alice", Department = "Engineering", Salary = 95000 },
-    new Employee { Name = "Bob", Department = "Marketing", Salary = 75000 },
-    new Employee { Name = "Carol", Department = "Engineering", Salary = 105000 },
-};
-employees.Dump("Employees", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal, ShowRowSeparators = true });
-
-// 5. With row indices shown
-Console.WriteLine("\n5. Collection with Row Indices");
-var tasks = new[]
-{
-    new { Task = "Review PR", Status = "Done", Priority = "High" },
-    new { Task = "Write tests", Status = "In Progress", Priority = "Medium" },
-    new { Task = "Update docs", Status = "Pending", Priority = "Low" },
-};
-tasks.Dump("Tasks (with indices)", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal, ShowRowIndices = true });
-
-// 6. Primitive collection - falls back to vertical (appropriate for simple types)
-Console.WriteLine("\n6. Primitive Collection (auto vertical fallback)");
-var numbers = new[] { 1, 2, 3, 4, 5 };
-numbers.Dump("Numbers - Horizontal requested", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
-
-// 7. Side-by-side comparison
-Console.WriteLine("\n7. Side-by-Side: Vertical vs Horizontal");
-var people = new[]
-{
-    new Person { FirstName = "Moaid", LastName = "Hathot", Profession = Profession.Software },
-    new Person { FirstName = "Haneeni", LastName = "Shibli", Profession = Profession.Health },
-};
-people.Dump("Vertical Layout");
-people.Dump("Horizontal Layout", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
-
-// 8. Dynamic/Hybrid Layout using SetLayoutWhen with depth-based rules
-Console.WriteLine("\n8. Hybrid Layout (Horizontal at depth 0, Vertical for nested)");
-var hybridConfig = new TableConfig();
-hybridConfig.SetLayoutWhen(
-    ctx => ctx.CurrentDepth == 0,  // Only at the top level
-    TableLayout.Horizontal
-);
-
-var ordersWithDetails = new[]
-{
-    new
+    // 3. Nested objects - nested tables preserve their own structure
+    Console.WriteLine("\n3. Nested Objects");
+    var order = new
     {
         OrderId = 1001,
         Customer = "Alice",
         Items = new[]
         {
-            new { Product = "Laptop", Qty = 1, Price = 999.99m },
-            new { Product = "Mouse", Qty = 2, Price = 29.99m },
+            new { Product = "Laptop", Qty = 1 },
+            new { Product = "Mouse", Qty = 2 },
         }
-    },
-    new
+    };
+    order.Dump("Order with nested items", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+
+    // 4. Mixed types in collection - graceful handling
+    Console.WriteLine("\n4. Row Separators");
+    var employees = new[]
     {
-        OrderId = 1002,
-        Customer = "Bob",
-        Items = new[]
+        new Employee { Name = "Alice", Department = "Engineering", Salary = 95000 },
+        new Employee { Name = "Bob", Department = "Marketing", Salary = 75000 },
+        new Employee { Name = "Carol", Department = "Engineering", Salary = 105000 },
+    };
+    employees.Dump("Employees", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal, ShowRowSeparators = true });
+
+    // 5. With row indices shown
+    Console.WriteLine("\n5. Collection with Row Indices");
+    var tasks = new[]
+    {
+        new { Task = "Review PR", Status = "Done", Priority = "High" },
+        new { Task = "Write tests", Status = "In Progress", Priority = "Medium" },
+        new { Task = "Update docs", Status = "Pending", Priority = "Low" },
+    };
+    tasks.Dump("Tasks (with indices)", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal, ShowRowIndices = true });
+
+    // 6. Primitive collection - falls back to vertical (appropriate for simple types)
+    Console.WriteLine("\n6. Primitive Collection (auto vertical fallback)");
+    var numbers = new[] { 1, 2, 3, 4, 5 };
+    numbers.Dump("Numbers - Horizontal requested", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+
+    // 7. Side-by-side comparison
+    Console.WriteLine("\n7. Side-by-Side: Vertical vs Horizontal");
+    var people = new[]
+    {
+        new Person { FirstName = "Moaid", LastName = "Hathot", Profession = Profession.Software },
+        new Person { FirstName = "Haneeni", LastName = "Shibli", Profession = Profession.Health },
+    };
+    people.Dump("Vertical Layout");
+    people.Dump("Horizontal Layout", tableConfig: new TableConfig { TableLayout = TableLayout.Horizontal });
+
+    // 8. Dynamic/Hybrid Layout using SetLayoutWhen with depth-based rules
+    Console.WriteLine("\n8. Hybrid Layout (Horizontal at depth 0, Vertical for nested)");
+    var hybridConfig = new TableConfig();
+    hybridConfig.SetLayoutWhen(
+        ctx => ctx.CurrentDepth == 0,  // Only at the top level
+        TableLayout.Horizontal
+    );
+
+    var ordersWithDetails = new[]
+    {
+        new
         {
-            new { Product = "Keyboard", Qty = 1, Price = 79.99m },
-        }
-    },
-};
+            OrderId = 1001,
+            Customer = "Alice",
+            Items = new[]
+            {
+                new { Product = "Laptop", Qty = 1, Price = 999.99m },
+                new { Product = "Mouse", Qty = 2, Price = 29.99m },
+            }
+        },
+        new
+        {
+            OrderId = 1002,
+            Customer = "Bob",
+            Items = new[]
+            {
+                new { Product = "Keyboard", Qty = 1, Price = 79.99m },
+            }
+        },
+    };
 
-Console.WriteLine("With hybrid config: top-level horizontal, nested stays vertical");
-ordersWithDetails.Dump("Orders (Hybrid)", tableConfig: hybridConfig);
+    Console.WriteLine("With hybrid config: top-level horizontal, nested stays vertical");
+    ordersWithDetails.Dump("Orders (Hybrid)", tableConfig: hybridConfig);
 
-// 9. Type-specific layout rules
-Console.WriteLine("\n9. Type-Specific Layout Rules");
-var typeSpecificConfig = new TableConfig();
-typeSpecificConfig.SetLayoutForType<Employee>(TableLayout.Horizontal);
-// Person stays vertical (default)
+    // 9. Type-specific layout rules
+    Console.WriteLine("\n9. Type-Specific Layout Rules");
+    var typeSpecificConfig = new TableConfig();
+    typeSpecificConfig.SetLayoutForType<Employee>(TableLayout.Horizontal);
+    // Person stays vertical (default)
 
-var team = new
-{
-    Manager = new Person { FirstName = "Alice", LastName = "Smith", Profession = Profession.Software },
-    Members = new[]
+    var team = new
     {
-        new Employee { Name = "Bob", Department = "Engineering", Salary = 85000 },
-        new Employee { Name = "Carol", Department = "Engineering", Salary = 90000 },
-    }
-};
-team.Dump("Team (Employee=Horizontal, Person=Vertical)", tableConfig: typeSpecificConfig);
+        Manager = new Person { FirstName = "Alice", LastName = "Smith", Profession = Profession.Software },
+        Members = new[]
+        {
+            new Employee { Name = "Bob", Department = "Engineering", Salary = 85000 },
+            new Employee { Name = "Carol", Department = "Engineering", Salary = 90000 },
+        }
+    };
+    team.Dump("Team (Employee=Horizontal, Person=Vertical)", tableConfig: typeSpecificConfig);
 
-// 10. Complex rule with TableLayoutResult overrides
-Console.WriteLine("\n10. Dynamic Config with Result Overrides");
-var advancedConfig = new TableConfig();
-advancedConfig.SetLayoutWhen(ctx =>
-    ctx.CurrentDepth == 0
-        ? new TableLayoutResult { Layout = TableLayout.Horizontal, ShowRowSeparators = true }
-        : TableLayoutResult.None  // Let other rules or default handle it
-);
+    // 10. Complex rule with TableLayoutResult overrides
+    Console.WriteLine("\n10. Dynamic Config with Result Overrides");
+    var advancedConfig = new TableConfig();
+    advancedConfig.SetLayoutWhen(ctx =>
+        ctx.CurrentDepth == 0
+            ? new TableLayoutResult { Layout = TableLayout.Horizontal, ShowRowSeparators = true }
+            : TableLayoutResult.None  // Let other rules or default handle it
+    );
 
-employees.Dump("Employees (Horizontal + Row Separators)", tableConfig: advancedConfig);
+    employees.Dump("Employees (Horizontal + Row Separators)", tableConfig: advancedConfig);
 
-Console.WriteLine("\n=== End Demo ===");
+    Console.WriteLine("\n=== End Demo ===");
+}
 
 // =============================================================================
 // Old playground code (preserved but not called)
 // =============================================================================
-#pragma warning disable CS8321 // Local function is declared but never used
 void OldPlaygroundCode()
 {
     //DumpConfig.Default.Renderer = Renderers.Text;
