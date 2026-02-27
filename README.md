@@ -254,8 +254,6 @@ DumpConfig.Default.MaxDepth = 3;
 //Much more...
 ```
 
-
-
 # Features for the future 0.7.0 release
 * Add configuration for formatting Anonymous Objects type names
 * Text renderer
@@ -271,7 +269,6 @@ DumpConfig.Default.MaxDepth = 3;
 * Live outputs
 * Add custom rendering for more types:
     - Exceptions, AggregateExceptions, etc...
-* Rethink Generators caching keys
 * Consider using Max Depth for Descriptors
 * Refactor Renderers and make it better extendable
 * Add more renderers
@@ -279,10 +276,6 @@ DumpConfig.Default.MaxDepth = 3;
     * re-introduce Json
     * CSharp Renderer
 * Consider Decoupling from Spectre.Console
-* Tests
-    * More tests
-    * Visual (Render) Tests - consider acceptance tests
-    * Tests for Nesting
 * More sync between Custom Descriptors and Custom Renderers
 	* Think how we can mark type's descriptor as needing special rendering.
 	* The current CustomDescriptorGenerator must generate a value
